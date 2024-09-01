@@ -1,0 +1,84 @@
+image: node:18
+
+definitions:
+    steps:
+        - step: &lint
+              name: "Lint"
+              script:
+                  - echo "Your linting goes here..."
+        - step: &deploy-to-stage
+              name: "Deployment to Stage"
+              deployment: stage
+              script:
+                  - apt-get update
+                  - apt-get install -y zip
+                  - cp appspec-stage.yml appspec.yml
+                  - zip -r application1.zip .
+                  - pipe: atlassian/aws-code-deploy:0.2.5
+                    variables:
+                        AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+                        AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+                        AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+                        APPLICATION_NAME: $APPLICATION_NAME
+                        S3_BUCKET: $S3_BUCKET
+                        COMMAND: "upload"
+                        ZIP_FILE: "application1.zip"
+                        VERSION_LABEL: "my-app-1.0.0"
+                  - pipe: atlassian/aws-code-deploy:0.2.5
+                    variables:
+                        AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+                        AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+                        AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+                        APPLICATION_NAME: $APPLICATION_NAME
+                        DEPLOYMENT_GROUP: $STAGE_DEPLOYMENT_GROUP
+                        S3_BUCKET: $S3_BUCKET
+                        COMMAND: "deploy"
+                        WAIT: "true"
+                        VERSION_LABEL: "my-app-1.0.0"
+                        IGNORE_APPLICATION_STOP_FAILURES: "true"
+                        FILE_EXISTS_BEHAVIOR: "OVERWRITE"
+        - step: &deploy-to-prod
+              name: "Deployment to Production"
+              deployment: production
+              script:
+                  - apt-get update
+                  - apt-get install -y zip
+                  - cp appspec-prod.yml appspec.yml
+                  - zip -r application1.zip .
+                  - pipe: atlassian/aws-code-deploy:0.2.5
+                    variables:
+                        AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+                        AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+                        AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+                        APPLICATION_NAME: $APPLICATION_NAME
+                        S3_BUCKET: $S3_BUCKET
+                        COMMAND: "upload"
+                        ZIP_FILE: "application1.zip"
+                        VERSION_LABEL: "my-app-1.0.0"
+                  - pipe: atlassian/aws-code-deploy:0.2.5
+                    variables:
+                        AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+                        AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+                        AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+                        APPLICATION_NAME: $APPLICATION_NAME
+                        DEPLOYMENT_GROUP: $PROD_DEPLOYMENT_GROUP
+                        S3_BUCKET: $S3_BUCKET
+                        COMMAND: "deploy"
+                        WAIT: "true"
+                        VERSION_LABEL: "my-app-1.0.0"
+                        IGNORE_APPLICATION_STOP_FAILURES: "true"
+                        FILE_EXISTS_BEHAVIOR: "OVERWRITE"
+
+pipelines:
+    branches:
+        "*":
+            - step: *lint
+            ##- step: *test
+        stage:
+            - step: *lint
+            ##- step: *test
+            - step: *deploy-to-stage
+        master:
+            - step: *lint
+            ##- step: *test
+            - step: *deploy-to-prod
