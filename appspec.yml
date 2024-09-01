@@ -1,0 +1,18 @@
+version: 0.0
+os: linux
+files:
+    - source: /
+      destination: /var/www/html
+hooks:
+    BeforeInstall:
+        - location: ./server.sh
+          timeout: 300
+          runas: ubuntu
+          args:
+              - start
+    AfterInstall:
+        - location: server.sh
+          timeout: 300
+          runas: ubuntu
+          args:
+              - stop
