@@ -1,0 +1,76 @@
+# Bitbucket Pipelines Configuration Document
+
+This document explains the configuration of the Continuous Integration/Continuous Deployment (CI/CD) pipeline using Bitbucket Pipelines and AWS CodeDeploy.
+
+## File: bitbucket-pipelines.yml
+
+This file contains the configuration for Bitbucket Pipelines. It defines the steps that are executed when code is pushed to your Bitbucket repository.
+
+```plaintext
++---------------------+     +---------------------+     +---------------------+
+|                     |     |                     |     |                     |
+|     Lint Step       | --> |  Deployment to      | --> |  Deployment to      |
+|                     |     |  Stage Step         |     |  Production Step    |
+|                     |     |                     |     |                     |
++---------------------+     +---------------------+     +---------------------+
+```
+
+### Image
+
+The pipeline uses the Docker image `node:18` as the environment in which the pipeline steps are executed.
+
+### Definitions
+
+The `definitions` section defines reusable pipeline steps. These steps can be referenced in the `pipelines` section.
+
+#### Lint Step
+
+The `lint` step is a placeholder for a linting script. Replace `echo "Your linting goes here..."` with your actual linting command.
+
+#### Deployment to Stage Step
+
+The `deploy-to-stage` step defines the actions that are performed when code is deployed to the staging environment. It includes:
+
+- Updating the package list for the Linux distribution
+- Installing the `zip` package
+- Copying the `appspec-stage.yml` file to `appspec.yml`
+- Creating a zip file of the application
+- Uploading the zip file to an S3 bucket using the `atlassian/aws-code-deploy:0.2.5` pipe
+- Deploying the application to the staging environment using the `atlassian/aws-code-deploy:0.2.5` pipe
+
+#### Deployment to Production Step
+
+The `deploy-to-prod` step defines the actions that are performed when code is deployed to the production environment. It is similar to the `deploy-to-stage` step, but uses the `appspec-prod.yml` file and deploys to the production environment.
+
+### Pipelines
+
+The `pipelines` section defines the pipeline that is executed when code is pushed to a branch. It references the steps defined in the `definitions` section.
+
+- For all branches (`"*"`), the `lint` step is executed.
+- For the `stage` branch, the `lint` and `deploy-to-stage` steps are executed.
+- For the `master` branch, the `lint` and `deploy-to-prod` steps are executed.
+
+```plaintext
++---------------------+     +---------------------+     +---------------------+
+|                     |     |                     |     |                     |
+|     All Branches    | --> |     Stage Branch    | --> |    Master Branch    |
+|                     |     |                     |     |                     |
++---------------------+     +---------------------+     +---------------------+
+|                     |     |                     |     |                     |
+|     Lint Step       |     |     Lint Step       |     |     Lint Step       |
+|                     |     |                     |     |                     |
++---------------------+     +---------------------+     +---------------------+
+                          |                     |     |                     |
+                          |  Deployment to      |     |  Deployment to      |
+                          |  Stage Step         |     |  Production Step    |
+                          |                     |     |                     |
+                          +---------------------+     +---------------------+
+```
+
+## Environment Variables
+
+The pipeline requires several environment variables to be set in the Bitbucket repository settings. These include AWS credentials, the name of the AWS CodeDeploy application, the name of the S3 bucket, and the names of the deployment groups for the staging and production environments.
+
+## AWS CodeDeploy Configuration
+
+The pipeline uses AWS CodeDeploy to deploy the application. The `appspec-stage.yml` and `appspec-prod.yml` files contain the instructions for AWS CodeDeploy on how to deploy the application. These files should be created in the root of your repository.
